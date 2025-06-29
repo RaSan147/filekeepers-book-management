@@ -1,0 +1,2 @@
+# Run daily at 2:00 AM
+0 2 * * * root /usr/local/bin/python -m scraper.main >> /var/log/cron.log 2>&1

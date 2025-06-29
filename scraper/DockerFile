@@ -1,0 +1,30 @@
+FROM python:3.9-slim
+
+WORKDIR /app
+
+# Install required system packages
+RUN apt-get update && apt-get install -y \
+    gcc \
+    python3-dev \
+    cron \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first to leverage Docker cache
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Copy the cron job definition
+COPY crontab /etc/cron.d/scraper-cron
+RUN chmod 0644 /etc/cron.d/scraper-cron
+
+# Create the log file
+RUN touch /var/log/cron.log
+
+# Install application as package
+RUN pip install -e .
+
+# Run the command on container startup
+CMD ["sh", "-c", "cron && tail -f /var/log/cron.log"]

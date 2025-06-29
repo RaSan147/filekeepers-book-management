@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+motor
+pydantic
+python-dotenv
+slowapi
+python-multipart
+aiohttp
+python-dateutil
+typing-extensions
+beautifulsoup4
+lxml
+aiosmtplib
