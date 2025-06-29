@@ -27,6 +27,7 @@ SMTP_CONFIG = {
     'password': os.getenv('SMTP_PASS')
 }
 CHANGELOG_LIMIT = int(os.getenv('CHANGELOG_LIMIT', -1))  # -1 for no limit
+REQUEST_TIMEOUT = int(os.getenv('REQUEST_TIMEOUT', 30))  # Default to 30 seconds
 
 class BookScraper:
     def __init__(self, base_url=BASE_URL, mongo_uri=MONGO_URI):
@@ -63,15 +64,24 @@ class BookScraper:
         ])
         await self.db.change_log.create_index([("timestamp", -1)])
 
-    @exponential_backoff(retries=3)
+    @exponential_backoff(retries=3, retry_on_None=True, raise_on_failure=False)
     async def fetch_page(self, url: str) -> Optional[str]:
+        """
+        Fetch a page using aiohttp with error handling and retries.
+        Args:
+            url (str): The URL to fetch.
+        Returns:
+            Optional[str]: The HTML content of the page or None if an error occurs.
+        """
         try:
-            async with self.session.get(url) as response:
-                response.raise_for_status()
+            async with self.session.get(url, timeout=aiohttp.ClientTimeout(total=REQUEST_TIMEOUT)) as response:
+                response.raise_for_status()  # Raise for HTTP errors
                 return await response.text()
+        except asyncio.TimeoutError:
+            logger.warning(f"Timeout fetching {url}")
         except Exception as e:
-            logger.error(f"Error fetching {url}: {e}")
-            return None
+            logger.error(f"Error fetching {url}: {e.__class__.__name__}: {str(e)}")
+        return None
 
     def parse_book_page(self, html: str, url: str) -> Optional[BookBase]:
         """

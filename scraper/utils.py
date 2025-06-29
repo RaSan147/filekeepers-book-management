@@ -42,20 +42,29 @@ async def send_email_alert(subject: str, body: str, recipient: str, smtp_config:
     except Exception as e:
         logger.error(f"Failed to send email: {e}")
 
-def exponential_backoff(retries: int = 3, base_delay: float = 1.0):
+def exponential_backoff(retries: int = 3, base_delay: float = 1.0, retry_on_None: bool = False, raise_on_failure: bool = True):
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
             last_error = None
             for attempt in range(retries):
                 try:
-                    return await func(*args, **kwargs)
+                    return_value = await func(*args, **kwargs)
+                    if return_value is None and retry_on_None:
+                        last_error = ValueError("Function returned None")
+                        raise last_error
+                    return return_value
                 except Exception as e:
                     last_error = e
                     if attempt < retries - 1:
                         delay = base_delay * (2 ** attempt)
                         logger.warning(f"Attempt {attempt + 1} failed. Retrying in {delay}s...")
                         await asyncio.sleep(delay)
-            raise last_error if last_error else Exception("Unknown error")
+
+            if raise_on_failure:
+                raise last_error if last_error else Exception("Unknown error")
+            else:
+                logger.error(f"Function failed after {retries} attempts: {last_error}")
+                return None
         return wrapper
     return decorator
