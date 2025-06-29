@@ -12,8 +12,8 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import IndexModel
 
 from shared.models import BookBase, BookInDB, BookChangeLog
-from utils import send_email_alert, exponential_backoff
-from network_utils import resolve_relative_link, tag_to_absolute_url
+from .utils import send_email_alert, exponential_backoff
+from .network_utils import resolve_relative_link, tag_to_absolute_url
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
