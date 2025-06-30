@@ -33,7 +33,7 @@ async def create_api_key(
 	}
 	```
 
-	Response:
+	Response Example:
 	```json
 	{
 		"key": "string", # Auto-generated API key (UUID4)
@@ -89,7 +89,7 @@ async def list_api_keys(
 	List all API keys (admin only)
 
 	This endpoint allows an admin to retrieve a list of all API keys in the system.
-	Response:
+	Response Example:
 	```json
 	[
 		{
@@ -137,7 +137,7 @@ async def update_api_key(
 		"scopes": ["string"] # List of new scopes/permissions
 	}
 	```
-	Response:
+	Response Example:
 	```json
 	{
 		"key": "string", # Auto-generated API key (UUID4)
@@ -182,7 +182,7 @@ async def delete_api_key(
 
 	This endpoint allows an admin to delete an existing API key.
 
-	Response:
+	Response Example:
 	```json
 	{		
 		"detail": "API key deleted successfully"

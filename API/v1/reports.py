@@ -16,10 +16,35 @@ router = APIRouter()
 @api_ip_rate_limit()
 async def get_daily_report(
     request: Request,
-    date: Optional[str] = Query(None, regex=r"^\d{4}-\d{2}-\d{2}$", example="2025-06-30"),
+    date: Optional[str] = Query(None, regex=r"^\d{4}-\d{2}-\d{2}$", description="Date in YYYY-MM-DD format."),
     db: AsyncIOMotorDatabase = Depends(get_db),
     api_key: str = Depends(validate_api_key)
 ):
+    """
+    Get the daily change report for a specific date.
+
+    Parameters:
+    - `date`: Optional date in YYYY-MM-DD format. If not provided, returns the most recent report.
+
+    Response Example:
+    ```json
+    {
+        "date": "2023-10-01T00:00:00Z",
+        "changes": [
+            {
+                "book_id": "book123",
+                "change_type": "added",
+                "changed_fields": {
+                    "title": "New Book Title",
+                    "author": "Author Name",
+                    "price": 19.99
+                }
+            },
+            ...
+        ]
+    }
+    ```
+    """
     query = {}
     if date:
         query["date"] = {"$regex": f"^{date}"}
@@ -34,10 +59,16 @@ async def get_daily_report(
 @api_ip_rate_limit()
 async def get_daily_report_csv(
     request: Request,
-    date: Optional[str] = Query(None, regex=r"^\d{4}-\d{2}-\d{2}$", example="2025-06-30"),
+    date: Optional[str] = Query(None, regex=r"^\d{4}-\d{2}-\d{2}$", description="Date in YYYY-MM-DD format."),
     db: AsyncIOMotorDatabase = Depends(get_db),
     api_key: str = Depends(validate_api_key)
 ):
+    """
+    Download the daily change report as a CSV file.
+
+    Parameters:
+    - `date`: Optional date in YYYY-MM-DD format. If not provided, returns the most recent report.
+    """
     report = await get_daily_report(request, date, db, api_key)
     
     output = io.StringIO()

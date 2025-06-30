@@ -242,6 +242,14 @@ class BookScraper:
             return "created"
 
     def paginate_url(self, soup: BeautifulSoup, base_url: str) -> Optional[str]:
+        """
+        Find the next page URL from the pagination links.
+        Args:
+            soup (BeautifulSoup): The BeautifulSoup object containing the page HTML.
+            base_url (str): The base URL to resolve relative links.
+        Returns:
+            Optional[str]: The absolute URL of the next page or None if no next page is found.
+        """
         next_page = soup.select_one('li.next a')
 
         return tag_to_absolute_url(
@@ -249,6 +257,13 @@ class BookScraper:
         ) if next_page else None
 
     async def scrape_category(self, category_url: str):
+        """
+        Scrape a category page for book links and process each book concurrently.
+        Args:
+            category_url (str): The URL of the category page to scrape.
+        Returns:
+            List[Optional[str]]: A list of results from processing each book page.
+        """
         html = await self.fetch_page(category_url)
         if not html:
             return []
@@ -275,6 +290,11 @@ class BookScraper:
         return results
 
     async def scrape_all_books(self):
+        """
+        Scrape all books from all categories starting from the index page.
+        This method fetches the index page, extracts category links, and scrapes each category concurrently.
+        It also generates a daily report of new and updated books.
+        """
         logger.info("Starting book scraping")
         start_time = datetime.now(tz=timezone.utc)
         
@@ -301,6 +321,11 @@ class BookScraper:
         logger.info(f"Finished scraping in {datetime.now(tz=timezone.utc) - start_time} seconds")
 
     async def generate_daily_report(self, since: datetime):
+        """ Generate a daily report of new and updated books since the given date.
+        This method counts new and updated books, retrieves change logs, and stores the report in the database.
+        Args:
+            since (datetime): The date from which to count new and updated books.
+        """
         new_books = await self.db.books.count_documents({
             "first_seen": {"$gte": since}
         })

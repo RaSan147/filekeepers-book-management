@@ -9,6 +9,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 async def migrate():
+    """
+    Run database migrations to set up initial collections and indexes.
+    This function creates the necessary indexes for the API keys collection
+    and inserts an initial admin API key if none exists.
+    """
     client = AsyncIOMotorClient(config.MONGO_URI)
     db = client.book_db
     
