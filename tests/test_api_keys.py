@@ -1,6 +1,5 @@
 import pytest
 from fastapi import status
-from shared.models import APIKeyCreate, APIKeyUpdate
 
 from .conftest import API_ADMIN, LIMITED_API_KEY, NULL_API_KEY, MALFORMED_API_KEY, MALFORMED_API_KEY2, MONGO_TEST_ID
 

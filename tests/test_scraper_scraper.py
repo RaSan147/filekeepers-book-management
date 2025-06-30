@@ -5,7 +5,6 @@ from unittest.mock import AsyncMock, patch, MagicMock
 from scraper.scraper import BookScraper
 from shared.models import BookBase
 import aiohttp
-from datetime import datetime, timezone
 
 @pytest_asyncio.fixture
 async def scraper():

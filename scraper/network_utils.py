@@ -3,7 +3,7 @@ import socket
 from re import compile as re_compile
 from re import sub as re_sub
 from typing import Any, Dict, Optional, OrderedDict, Union
-from urllib.parse import ParseResult, urljoin, urlparse, urlunparse
+from urllib.parse import ParseResult, urljoin, urlparse
 
 from bs4 import BeautifulSoup as bs
 from bs4 import FeatureNotFound as bs_FeatureNotFound

@@ -1,6 +1,6 @@
 import pytest
 from fastapi import status
-from .conftest import API_ADMIN, LIMITED_API_KEY, NULL_API_KEY, MALFORMED_API_KEY, MALFORMED_API_KEY2
+from .conftest import LIMITED_API_KEY, NULL_API_KEY, MALFORMED_API_KEY, MALFORMED_API_KEY2
 
 @pytest.mark.asyncio
 async def test_access_without_api_key(test_client):

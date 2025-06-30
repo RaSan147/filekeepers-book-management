@@ -1,7 +1,6 @@
 import asyncio
 from datetime import datetime, timezone
 from motor.motor_asyncio import AsyncIOMotorClient
-from shared.models import APIKeyCreate
 from shared.config import config
 
 import logging

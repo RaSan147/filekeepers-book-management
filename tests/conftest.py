@@ -1,14 +1,11 @@
 from datetime import datetime, timezone
-from uuid import uuid4
 from bson import ObjectId
 from pymongo import IndexModel
 import pytest
 from fastapi.testclient import TestClient
 from motor.motor_asyncio import AsyncIOMotorClient
-import pytest_asyncio
 from shared.config import config
 from API import app
-import os
 
 from shared.models import BookChangeLog
 

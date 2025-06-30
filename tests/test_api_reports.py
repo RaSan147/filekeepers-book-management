@@ -1,6 +1,6 @@
 import pytest
 from fastapi import status
-from .conftest import API_ADMIN, LIMITED_API_KEY, NULL_API_KEY, MALFORMED_API_KEY, MALFORMED_API_KEY2
+from .conftest import API_ADMIN
 
 @pytest.mark.asyncio
 async def test_get_daily_report(test_client):

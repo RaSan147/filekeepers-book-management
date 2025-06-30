@@ -5,7 +5,6 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from typing import List, Optional
 
 from shared.models import BookInDB, BookChangeLog
-from shared.config import config
 from shared.api_deps import get_db, api_ip_rate_limit, validate_api_key
 
 router = APIRouter()
