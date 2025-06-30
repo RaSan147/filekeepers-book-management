@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from functools import wraps
+import uuid
 from fastapi.security import APIKeyHeader
 from fastapi import Depends, HTTPException, status, Request
 from slowapi import Limiter
@@ -47,6 +48,15 @@ async def validate_api_key(
             detail="API key is required",
         )
     
+    # Validate UUID format (optional but recommended)
+    try:
+        uuid.UUID(api_key, version=4)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid API key format",
+        )
+    
     key_info = await get_api_key(db, api_key)
     if not key_info or not key_info.is_active:
         raise HTTPException(
@@ -61,8 +71,8 @@ async def validate_api_key(
     )
     
     # Store key info in request state
-    request.state.api_key_id = str(key_info.id)
     request.state.api_key = key_info
+    request.state.api_key_id = key_info.id  # Store ID for rate limiting
     
     return key_info
 

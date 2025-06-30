@@ -5,6 +5,8 @@ from enum import Enum
 from typing import Any, List, Optional
 from uuid import uuid4, UUID
 
+from shared.config import config
+
 
 class ObjectIdStr(str):
     @classmethod
@@ -57,34 +59,99 @@ class DailyChangeReport(BaseModel):
     changes: list[dict]
 
 
+# class APIKeyBase(BaseModel):
+#     key: str = Field(..., description="The API key value")
+#     name: str = Field(..., description="Name/description of the key")
+#     owner: str = Field(..., description="Owner of the key")
+#     rate_limit: str = Field("100/hour", description="Rate limit configuration")
+#     scopes: Optional[List[str]] = None
+
+# class APIKeyInDB(APIKeyBase):
+#     id: ObjectIdStr = Field(..., alias="_id", description="MongoDB document ID")
+#     created_at: datetime = Field(default_factory=(lambda _: datetime.now(tz=timezone.utc)), description="When the key was created")
+#     is_active: bool = Field(default=True, description="Whether the key is active")
+#     last_used: Optional[datetime] = Field(default_factory=(lambda _: datetime.now(tz=timezone.utc)), description="When the key was last used")
+#     scopes: List[str] = Field(default_factory=list, description="List of permissions/scopes")
+#     # expires_at: Optional[datetime] = None # Not implemented yet
+
+#     # # Alternative solution for ObjectId conversion
+#     # @field_validator("id", mode="before")
+#     # @classmethod
+#     # def convert_object_id(cls, v: Any) -> str:
+#     #     if isinstance(v, ObjectId):
+#     #         return str(v)
+#     #     return v
+
+# class APIKeyCreate(APIKeyInDB):
+#     pass
+
+# class APIKeyUpdate(BaseModel):
+#     name: Optional[str] = None
+#     rate_limit: Optional[str] = None
+#     is_active: Optional[bool] = None
+
+
 class APIKeyBase(BaseModel):
-    key: str = Field(..., description="The API key value")
+    key: str = Field(
+        default_factory=lambda: str(uuid4()), 
+        description="Auto-generated API key (UUID4)"
+    )
     name: str = Field(..., description="Name/description of the key")
     owner: str = Field(..., description="Owner of the key")
-    rate_limit: str = Field("100/hour", description="Rate limit configuration")
-    scopes: Optional[List[str]] = None
+    rate_limit: str = Field(
+        "100/hour", 
+        description="Rate limit configuration (e.g., '100/hour')"
+    )
+    scopes: List[str] = Field(
+        default_factory=list, 
+        description="List of permissions/scopes"
+    )
+    is_active: bool = Field(
+        default=True, 
+        description="Whether the key is active"
+    )
 
 class APIKeyInDB(APIKeyBase):
     id: ObjectIdStr = Field(..., alias="_id", description="MongoDB document ID")
-    created_at: datetime = Field(default_factory=(lambda _: datetime.now(tz=timezone.utc)), description="When the key was created")
-    is_active: bool = Field(default=True, description="Whether the key is active")
-    last_used: Optional[datetime] = Field(default_factory=(lambda _: datetime.now(tz=timezone.utc)), description="When the key was last used")
-    scopes: List[str] = Field(default_factory=list, description="List of permissions/scopes")
-    # expires_at: Optional[datetime] = None # Not implemented yet
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(tz=timezone.utc),
+        description="When the key was created"
+    )
+    last_used: Optional[datetime] = Field(
+        None,
+        description="When the key was last used"
+    )
 
-    @field_validator("id", mode="before")
-    @classmethod
-    def convert_object_id(cls, v: Any) -> str:
-        if isinstance(v, ObjectId):
-            return str(v)
-        return v
-
-class APIKeyCreate(APIKeyInDB):
-    pass
+class APIKeyCreate(BaseModel):
+    name: str = Field(..., description="Name/description of the key")
+    owner: str = Field(..., description="Owner of the key")
+    rate_limit: Optional[str] = Field(
+        default=None, 
+        description="Rate limit configuration (e.g., '100/hour')"
+    )
+    is_admin: bool = Field(
+        default=False, 
+        description="Whether the key is for admin use (grants all permissions)"
+    )
+    scopes: Optional[List[str]] = Field(
+        default_factory=lambda: ["admin", "read", "write"] if False else ["read"],
+        description='List of permissions/scopes for the key (Available ["admin", "read", "write"]), default is ["read"]'
+    )
 
 class APIKeyUpdate(BaseModel):
-    name: Optional[str] = None
-    rate_limit: Optional[str] = None
-    is_active: Optional[bool] = None
-
-
+    name: Optional[str] = Field(
+        default=None, 
+        description="New name/description for the key"
+    )
+    rate_limit: Optional[str] = Field(
+        default=None, 
+        description="New rate limit configuration (e.g., '100/hour')"
+    )
+    is_active: Optional[bool] = Field(
+        default=None, 
+        description="Whether to activate/deactivate the key"
+    )
+    scopes: Optional[List[str]] = Field(
+        default=None, 
+        description="New list of permissions/scopes for the key"
+    )

@@ -1,18 +1,20 @@
 import API
 from API import migrate as api_migrate
 
+MODE = "DEV"  # Change to "PROD" for production
+
 if __name__ == "__main__":
 	# Run migrations
 	import asyncio
 	asyncio.run(api_migrate.migrate())
 
-if __name__ == "PROD__main__":
+if __name__ == "__main__" and MODE == "PROD":
 	import uvicorn
 	uvicorn.run(
 		API.app, host=API.API_HOST, port=API.API_PORT, 
 	)
 
-if __name__ == "__main__":#DEV
+if __name__ == "__main__" and MODE == "DEV":
 	import subprocess
 	import sys
 	import os
@@ -34,5 +36,4 @@ if __name__ == "__main__":#DEV
 		print(f"Running: {' '.join(command)}")
 		subprocess.run(command, env=env)
 
-	# Change "main:app" if your FastAPI app is in a different file or named differently
 	run_fastapi_dev("API:app", port=8000)

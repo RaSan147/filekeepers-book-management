@@ -77,6 +77,7 @@ class BookScraper:
         """
         try:
             async with self.session.get(url, timeout=aiohttp.ClientTimeout(total=REQUEST_TIMEOUT)) as response:
+                #NOTE: causes warning for not waiting in pytest. but its not a promise return, so can't be awaited
                 response.raise_for_status()  # Raise for HTTP errors
                 return await response.text()
         except asyncio.TimeoutError:
@@ -225,7 +226,7 @@ class BookScraper:
             # Log creation
             change_log = BookChangeLog(
                 book_id=str(result.inserted_id),
-                change_type="created",
+                change_type="added",
                 changed_fields={"new_book": True},
                 timestamp=now
             )
