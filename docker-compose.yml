@@ -3,54 +3,46 @@ version: '3.8'
 services:
   mongodb:
     image: mongo:6.0
-    container_name: mongodb
     ports:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
     environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: example
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 5s
       timeout: 30s
-      retries: 3
-
-  scraper:
-    build: ./scraper
-    container_name: scraper
-    depends_on:
-      mongodb:
-        condition: service_healthy
-    environment:
-      - PYTHONUNBUFFERED=1
-      - SMTP_HOST=smtp.example.com
-      - SMTP_PORT=587
-      - SMTP_USER=alerts@example.com
-      - SMTP_PASSWORD=password
-      - ALERT_EMAIL=admin@example.com
-    volumes:
-      - ./shared:/app/shared
-      - ./scraper:/app/scraper
-      - scraper_logs:/var/log
-    restart: unless-stopped
+      retries: 5
+    env_file:
+      - .env
 
   api:
-    build: ./api
-    container_name: api
+    build:
+      context: .
+      dockerfile: Dockerfile.api
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     depends_on:
       mongodb:
         condition: service_healthy
     environment:
-      - PYTHONUNBUFFERED=1
-    volumes:
-      - ./shared:/app/shared
-      - ./api:/app/api
-    restart: unless-stopped
+      - MONGO_URI=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017
+
+  scraper:
+    build:
+      context: .
+      dockerfile: Dockerfile.scraper
+    env_file:
+      - .env
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - MONGO_URI=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017
 
 volumes:
   mongodb_data:
-  scraper_logs:
