@@ -1,140 +1,105 @@
+# 📚 Books to Scrape Aggregation System
 
-# 📚 Book Scraper & Monitoring System  
-_A Production-Grade Web Scraper, Scheduler, and RESTful API for Books to Scrape_
-
-## 🚀 Overview
-
-This project is a complete content aggregation and monitoring platform for product-related websites, with a production-ready pipeline built around [https://books.toscrape.com](https://books.toscrape.com). It includes:
-
-- 🌐 **Asynchronous Web Crawler** with robust retry, resume, and change detection logic.
-- 🕓 **Daily Scheduler** for automatic monitoring and change logging.
-- 🔐 **Secure RESTful API Server** with authentication, filtering, and rate-limiting.
-- 💾 **MongoDB Integration** for scalable, document-based storage.
-- 📊 **Reporting Interface** to track daily changes with optional CSV export.
-- ✅ **Testable, Modular, and Well-Structured** codebase for easy maintenance and deployment.
-
-> Designed with fault-tolerance, performance, and clean design in mind.
+A **production-grade content aggregation pipeline** that scrapes, monitors, and exposes data from [books.toscrape.com](https://books.toscrape.com). This platform includes a robust crawler, scheduler with change detection, and a secure FastAPI backend for delivering book-related insights.
 
 ---
 
-## 📁 Project Structure
+## 🌟 Key Features
+
+### 🕸️ Asynchronous Web Crawler
+- Built with `aiohttp`, `BeautifulSoup`, and retry logic
+- Scrapes:
+  - ✅ Book title, description, and category
+  - 💰 Prices (incl./excl. tax)
+  - 📦 Availability and number of reviews
+  - ⭐ Rating, image URL, and raw HTML
+- Stores crawl metadata with timestamp, URL, and content hash
+- Supports **resume from failure** and **idempotent updates**
+
+### 🗓️ Scheduler with Change Detection
+- Scheduled via cron in Docker
+- Detects:
+  - New books (first-seen)
+  - Updated fields (price, availability, etc.)
+- Logs changes and diffs in MongoDB
+- Sends **email alerts** and supports **CSV daily reports**
+
+### 🔐 FastAPI Backend
+- Endpoints for querying books, changes, and reports
+- API Key-based authentication with rate limits
+- Query filters, sorting, and pagination
+- Interactive Swagger documentation
+
+---
+
+## 🗂️ Project Structure
 
 ```
 
 .
-├── API/                 # FastAPI server (routes, auth, reports)
-├── scraper/             # Async web crawler and scheduler
-├── shared/              # Shared models, config, utilities
-├── tests/               # (Optional) Unit & integration tests
-├── .env                 # Environment variables
-├── docker-compose.yml   # Docker-based orchestration
-├── scrapper_caller.py   # Entrypoint to run the crawler
-├── api_server_caller.py # Entrypoint to run the API server
+├── API/               # FastAPI server (v1 routes, key management, reporting)
+├── scraper/           # Crawler and scheduler
+├── shared/            # Pydantic models, config, utilities
+├── tests/             # Test suite (pytest-ready)
+├── .env               # Runtime configuration
+├── docker-compose.yml # Multi-container orchestrator
+├── scrapper\_caller.py # Entry point for crawler
+├── api\_server\_caller.py # Entry point for API server
 └── README.md
 
 ````
 
 ---
 
-## 🧰 Features
+## ⚙️ Configuration
 
-### ✅ Part 1: Crawler
-- Asynchronous & fault-tolerant (`aiohttp`, retry with backoff)
-- Crawls:
-  - Book Title, Description, Category
-  - Prices (incl. & excl. tax)
-  - Availability & Reviews
-  - Rating, Image URL, Raw HTML snapshot
-- Metadata stored: crawl timestamp, content hash, source URL
-- Automatically resumes from last success if interrupted
-
-### ⏰ Part 2: Scheduler + Change Detection
-- Scheduled daily with `cron` or `APScheduler`
-- Detects:
-  - Newly added books
-  - Updated records (price, availability, etc.)
-- Stores:
-  - Change log with timestamps and diffs
-  - Daily reports (JSON and downloadable CSV)
-- Email alerts for significant changes (e.g., price updates)
-
-### 🧩 Part 3: Secure RESTful API
-- Built with **FastAPI**, fully documented via Swagger (`/docs`)
-- Endpoints:
-  - `GET /books`: Filter, search, paginate
-  - `GET /books/{id}`: Book details
-  - `GET /changes`: View recent updates
-  - `GET /reports/daily`: Daily monitoring report
-- Security:
-  - API key-based authentication
-  - Rate limiting with `slowapi`
-  - Admin scopes for key management
-
----
-
-## 🧑‍💻 Developer Setup
-
-### 🔧 Requirements
-
-- Python ≥ 3.10
-- MongoDB (local or cloud)
-- [Docker](https://www.docker.com/) (recommended for easy setup)
-
-### 📦 Install Dependencies
-
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-````
-
-### ⚙️ Environment Configuration
-
-Create a `.env` file with:
+Create a `.env` file using the `.env.example` template:
 
 ```env
-# Example .env
 MONGO_URI=mongodb://localhost:27017
-API_HOST=0.0.0.0
-API_PORT=8080
 SMTP_HOST=smtp.mailtrap.io
 SMTP_PORT=587
-SMTP_USER=your_user
-SMTP_PASS=your_pass
-DEFAULT_ADMIN_API_KEY=your_api_key
-DEFAULT_ADMIN_TASK_NAME=admin
-CHANGELOG_LIMIT=100
-REQUEST_TIMEOUT=30
-ENV_LOADED_SUCCESSFULLY=1
-```
+SMTP_USER=username
+SMTP_PASS=password
+EMAIL_TO=admin@example.com
+
+DEFAULT_ADMIN_API_KEY=your-secret-key
+API_PORT=8080
+API_HOST=0.0.0.0
+````
 
 ---
 
-## 🧪 Run the Project
+## 🚀 Quick Start
 
-### ▶️ Run the Scraper
+### 🧪 Local Environment
+
+```bash
+# Setup virtualenv
+python -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### ▶ Run the Scraper
 
 ```bash
 python scrapper_caller.py
-```
-
-To resume from last session (run if interrupted) (if completed, will skip through already processed books):
-
-```bash
+# or to resume from last run
 python scrapper_caller.py --resume
 ```
 
-### ▶️ Run the API Server
+### ▶ Run the API
 
 ```bash
 python api_server_caller.py
-```
-or Uvicorn for production:
-```bash
-uvicorn API:app --host "0.0.0.0" --port 8080
+# or for production
+uvicorn API:app --host 0.0.0.0 --port 8080
 ```
 
-### 🐳 Docker
+### 🐳 Docker-based Setup
 
 ```bash
 docker-compose up --build
@@ -142,56 +107,112 @@ docker-compose up --build
 
 ---
 
-## 🔐 API Documentation
+## 🔍 API Overview
 
-Interactive API docs:
+All endpoints require an API key via `X-API-KEY` header.
 
-* Swagger UI: [http://localhost:8080/docs](http://localhost:8080/docs)
-* Redoc: [http://localhost:8080/redoc](http://localhost:8080/redoc)
+### 📚 Books
 
-Authentication:
+```http
+GET /api/v1/books
+```
 
-* All endpoints require a valid `X-API-KEY` header.
-* Use `/keys` (admin-only) to manage API keys.
+#### Query Parameters
 
+| Param      | Description                    |
+| ---------- | ------------------------------ |
+| category   | Filter by category             |
+| min\_price | Minimum price                  |
+| max\_price | Maximum price                  |
+| rating     | Minimum rating (1-5)           |
+| sort\_by   | One of: rating, price, reviews |
+| page       | Page number                    |
+| per\_page  | Items per page (max 100)       |
 
-### 📊 API Endpoints (Summary)
+**Example:**
 
-| Method | Endpoint             | Description                      |
-| ------ | -------------------- | -------------------------------- |
-| GET    | `/books`             | Filter, paginate, and sort books |
-| GET    | `/books/{book_id}`   | Get full book details            |
-| GET    | `/changes`           | Recent updates in books          |
-| GET    | `/reports/daily`     | Daily summary (JSON)             |
-| GET    | `/reports/daily/csv` | Daily summary (CSV download)     |
-| POST   | `/keys`              | Create API key (admin)           |
-| GET    | `/keys`              | List all keys (admin)            |
-| PATCH  | `/keys/{key_id}`     | Update a key (admin)             |
-| DELETE | `/keys/{key_id}`     | Remove a key (admin)             |
+```http
+GET /api/v1/books?category=Science&min_price=10&sort_by=rating
+X-API-KEY: your-api-key
+```
 
 ---
 
-## 📤 Sample MongoDB Document
+### 📘 Book Detail
+
+```http
+GET /api/v1/books/{book_id}
+```
+
+Returns full book details including raw HTML and timestamps.
+
+---
+
+### 🔄 Change Logs
+
+```http
+GET /api/v1/books/changes?days=7&limit=50
+```
+
+See what books were added/updated recently.
+
+---
+
+### 📊 Reports
+
+```http
+GET /api/v1/reports/daily
+GET /api/v1/reports/daily/csv
+```
+
+Download or view daily report of changes.
+
+---
+
+### 🔑 API Key Management (Admin Only)
+
+```http
+POST   /api/v1/keys
+GET    /api/v1/keys
+PATCH  /api/v1/keys/{key}
+DELETE /api/v1/keys/{key}
+```
+
+---
+
+## 🧬 MongoDB Book Entry Example
 
 ```json
 {
-  "_id": "60c72b2f9b1e8d001c8e4f3a",
-  "url": "https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html",
-  "title": "A Light in the Attic",
-  "category": "Poetry",
-  "description": "A touching book by Shel Silverstein...",
-  "price_incl_tax": 51.77,
-  "price_excl_tax": 47.45,
-  "availability": 19,
-  "review_count": 0,
-  "image_url": "https://books.toscrape.com/media/cache/...",
-  "rating": 3,
-  "content_hash": "abcd1234...",
+  "_id": "ObjectId(...)",
+  "title": "The Requiem",
+  "category": "Mystery",
+  "description": "A gripping tale...",
+  "price_incl_tax": 34.55,
+  "price_excl_tax": 30.00,
+  "availability": 8,
+  "review_count": 12,
+  "rating": 4,
+  "image_url": "https://books.toscrape.com/media/...",
+  "content_hash": "ae1d8f...",
   "raw_html": "<html>...</html>",
-  "first_seen": "2024-01-01T00:00:00Z",
-  "last_updated": "2024-01-03T12:00:00Z"
+  "url": "https://books.toscrape.com/catalogue/the-requiem_66/index.html",
+  "first_seen": "2025-06-29T12:01:00Z",
+  "last_updated": "2025-06-30T02:21:00Z"
 }
 ```
+
+---
+
+## 📬 Email Alerts
+
+* Daily summaries of new/changed books
+* Categorized by:
+
+  * 📗 New additions
+  * 💰 Price changes
+  * 📦 Stock updates
+  * 🔄 Other metadata changes
 
 ---
 
@@ -201,43 +222,30 @@ Authentication:
 pytest
 ```
 
----
-
-## 📬 Postman Collection
-
-A Postman collection for testing the API is included in the `/docs` folder or can be exported from `/docs` Swagger UI.
-
----
-
-## 🧠 Concepts & Tools Used
-
-* **Python Async** (`asyncio`, `aiohttp`)
-* **FastAPI**, **MongoDB**, **Motor**
-* **Retry with Exponential Backoff**
-* **Content Hashing** for change detection
-* **Rate Limiting** via `slowapi`
-* **API Key Authentication**
-* **Modular & Layered Architecture**
-* **Docker Compose** setup for services
-* **Email Alerting** via `aiosmtplib` (optional)
+Supports full async testing with mocked DB via fixtures.
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License.
-Feel free to fork and modify for educational or production use.
+Licensed under the MIT License.
+Feel free to fork, contribute, or use in production projects.
 
 ---
 
-## 💼 Author & Contact
+## 👤 Maintainer
 
 **Ratul Hasan**
-- [GitHub](www.github.com/rasan147)
+🔗 [GitHub](https://github.com/rasan147)
+
 ---
 
-## 🙌 Acknowledgments
+## 🙏 Acknowledgments
 
-* [Books to Scrape](https://books.toscrape.com) — the mock e-commerce site
-* FastAPI, MongoDB, BeautifulSoup — for making this project possible
+* [Books to Scrape](https://books.toscrape.com) for the dataset
+* FastAPI, BeautifulSoup, aiohttp, MongoDB for core tools
+* ChatGPT and Deepseek for assistance in development and documentation
+
+---
+
 
