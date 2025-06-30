@@ -2,9 +2,9 @@ name: Python Tests
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, pytest_tester ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, pytest_tester ]
 
 jobs:
   test:
@@ -42,7 +42,7 @@ jobs:
         
     - name: Run tests
       env:
-        MONGO_URI: "mongodb://mongodb:27017"  # Changed from localhost to service name
+        MONGO_URI: "mongodb://localhost:27017"  # Changed from localhost to service name
         PYTHONPATH: ${{ github.workspace }}
       run: |
         pytest -v
