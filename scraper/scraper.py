@@ -9,6 +9,7 @@ from uuid import uuid4
 
 import aiohttp
 from bs4 import BeautifulSoup
+from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import IndexModel
 
@@ -237,15 +238,6 @@ class BookScraper:
                 )
                 await self.db.change_log.insert_one(change_log.model_dump())
                 
-                # Send alert for significant changes
-                if 'price_incl_tax' in changed_fields or 'availability' in changed_fields:
-                    await send_email_alert(
-                        f"Book updated: {book_data.title}",
-                        f"Changed fields: {changed_fields}",
-                        "admin@example.com",
-                        smtp_config=SMTP_CONFIG
-                    )
-
                 self.scraped_links.add(book_url)  # Mark as scraped
                 # Log activity
                 activity_log = {
@@ -271,13 +263,6 @@ class BookScraper:
             )
             await self.db.change_log.insert_one(change_log.model_dump())
             
-            await send_email_alert(
-                f"New book added: {book_data.title}",
-                f"Category: {book_data.category}\nPrice: £{book_data.price_incl_tax}",
-                "admin@example.com",
-                smtp_config=SMTP_CONFIG
-            )
-
             self.scraped_links.add(book_url)  # Mark as scraped
             # Log activity
             activity_log = {
@@ -387,12 +372,18 @@ class BookScraper:
             "timestamp": {"$gte": since}
         }).sort("timestamp", -1)
 
+        # Send notifications for changes
+        listed_changes = await changes.to_list(None)
+        if changes:
+            await self.send_change_notifications(listed_changes)
+    
         if CHANGELOG_LIMIT > 0:
-            changes = await changes.limit(CHANGELOG_LIMIT).to_list(None)
+            changes = listed_changes[:CHANGELOG_LIMIT]
         elif CHANGELOG_LIMIT == -1:
-            changes = await changes.to_list(None)
+            changes = listed_changes
         else:
             changes = []
+
         
         report = {
             "date": datetime.now(timezone.utc).isoformat(),
@@ -406,10 +397,146 @@ class BookScraper:
         
         # Optionally send email with report
         await send_email_alert(
-            "Daily Scraping Report",
-            f"New books: {new_books}\nUpdated books: {updated_books}",
-            "admin@example.com",
-            smtp_config=SMTP_CONFIG
+            subject="Daily Scraping Report",
+            body=f"<b>New books:</b> {new_books}\n<b>Updated books:</b> {updated_books}",
+            recipient=config.EMAIL_TO,
+            smtp_config=SMTP_CONFIG,
+            html=True
+        )
+
+    async def send_change_notifications(self, changes: list):
+        """Group and send change notifications in a more organized way."""
+        new_books = []
+        price_changes = []
+        availability_changes = []
+        other_changes = []
+        
+        for change in changes:
+            if change['change_type'] == "added":
+                new_books.append(change)
+            elif change['change_type'] == "updated":
+                if 'price_incl_tax' in change['changed_fields']:
+                    price_changes.append(change)
+                elif 'availability' in change['changed_fields']:
+                    availability_changes.append(change)
+                else:
+                    other_changes.append(change)
+        
+        # Send separate emails for each category
+        if new_books:
+            await self._send_new_books_email(new_books)
+        if price_changes:
+            await self._send_price_changes_email(price_changes)
+        if availability_changes:
+            await self._send_availability_changes_email(availability_changes)
+        if other_changes:
+            await self._send_other_changes_email(other_changes)
+
+    async def _send_new_books_email(self, new_books: list):
+        """Send email about new books added."""
+        subject = f"📚 {len(new_books)} New Book(s) Added"
+        body = ["<h2>New Books Added</h2>", "<ul>"]
+        
+        for book in new_books:
+            book_data = await self.db.books.find_one({"_id": ObjectId(book['book_id'])})
+            if book_data:
+                body.append(
+                    f"<li><b>{book_data['title']}</b> in <i>{book_data['category']}</i> "
+                    f"(Price: <b>£{book_data['price_incl_tax']:.2f}</b>)"
+                    f"<br>▥ <a href='{book_data['url']}'>View Book</a></li>"
+                )
+        
+        body.append("</ul>")
+        await send_email_alert(
+            subject=subject,
+            body="\n".join(body),
+            recipient=config.EMAIL_TO,
+            smtp_config=SMTP_CONFIG,
+            html=True
+        )
+
+    async def _send_price_changes_email(self, price_changes: list):
+        """Send email about price changes."""
+        subject = f"💰 {len(price_changes)} Book Price Change(s)"
+        body = ["<h2>Price Changes</h2>", "<ul>"]
+        
+        for change in price_changes:
+            book_data = await self.db.books.find_one({"_id": ObjectId(change['book_id'])})
+            if book_data:
+                old_price, new_price = change['changed_fields']['price_incl_tax']
+                price_diff = new_price - old_price
+                arrow = "↑" if price_diff > 0 else "↓"
+                
+                body.append(
+                    f"<li><b>{book_data['title']}</b> "
+                    f"<span style='color: {'red' if price_diff > 0 else 'green'}'>"
+                    f"({arrow}£{abs(price_diff):.2f})</span> "
+                    f"from <s>£{old_price:.2f}</s> to <b>£{new_price:.2f}</b>"
+                    f"<br>▥ <a href='{book_data['url']}'>View Book</a></li>"
+                )
+        
+        body.append("</ul>")
+        await send_email_alert(
+            subject=subject,
+            body="\n".join(body),
+            recipient=config.EMAIL_TO,
+            smtp_config=SMTP_CONFIG,
+            html=True
+        )
+
+    async def _send_availability_changes_email(self, availability_changes: list):
+        """Send email about availability changes."""
+        subject = f"📦 {len(availability_changes)} Stock Level Change(s)"
+        body = ["<h2>Availability Changes</h2>", "<ul>"]
+        
+        for change in availability_changes:
+            book_data = await self.db.books.find_one({"_id": ObjectId(change['book_id'])})
+            if book_data:
+                old_stock, new_stock = change['changed_fields']['availability']
+                stock_diff = new_stock - old_stock
+                
+                body.append(
+                    f"<li><b>{book_data['title']}</b> "
+                    f"<span style='color: {'green' if stock_diff > 0 else 'red'}'>"
+                    f"({'+' if stock_diff > 0 else ''}{stock_diff})</span> "
+                    f"from {old_stock} to <b>{new_stock}</b> in stock"
+                    f"<br>▥ <a href='{book_data['url']}'>View Book</a></li>"
+                )
+        
+        body.append("</ul>")
+        await send_email_alert(
+            subject=subject,
+            body="\n".join(body),
+            recipient=config.EMAIL_TO,
+            smtp_config=SMTP_CONFIG,
+            html=True
+        )
+
+    async def _send_other_changes_email(self, other_changes: list):
+        """Send email about other changes."""
+        subject = f"ℹ️ {len(other_changes)} Other Book Change(s)"
+        body = ["<h2>Other Changes</h2>", "<ul>"]
+        
+        for change in other_changes:
+            book_data = await self.db.books.find_one({"_id": ObjectId(change['book_id'])})
+            if book_data:
+                changes = []
+                for field, (old_val, new_val) in change['changed_fields'].items():
+                    changes.append(f"{field}: {old_val} → <b>{new_val}</b>")
+                
+                body.append(
+                    f"<li><b>{book_data['title']}</b><br>"
+                    f"{'<br>'.join(changes)}"
+                    f"<br>▥ <a href='{book_data['url']}'>View Book</a></li>"
+                )
+        
+        body.append("</ul>")
+        await send_email_alert(
+            subject=subject,
+            body="\n".join(body),
+            recipient=config.EMAIL_TO,
+            smtp_config=SMTP_CONFIG,
+            html=True
         )
 
 async def main(resume: bool = False):

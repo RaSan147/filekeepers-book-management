@@ -12,6 +12,14 @@ class Config:
 	SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
 	SMTP_USER = os.getenv("SMTP_USER")
 	SMTP_PASS = os.getenv("SMTP_PASS")
+
+	# Email configuration
+	EMAIL_FROM = os.getenv("EMAIL_FROM", SMTP_USER)  # Default to SMTP user
+	EMAIL_TO = os.getenv("EMAIL_TO", None)  # Default to None, can be set later
+
+	MAX_EMAILS = int(os.getenv("MAX_EMAILS", 100))  # Maximum number of emails to send
+	MAX_RETRIES = int(os.getenv("MAX_RETRIES", 3))  # Maximum number of retries for email sending
+
 	CHANGELOG_LIMIT = int(os.getenv("CHANGELOG_LIMIT", -1)) # Limit for change log entries, -1 for no limit
 	REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", 30))
 

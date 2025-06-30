@@ -1,4 +1,5 @@
 import asyncio
+import os
 from typing import Optional
 import aiosmtplib
 from email.mime.text import MIMEText
@@ -9,38 +10,95 @@ from functools import wraps
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-async def send_email_alert(subject: str, body: str, recipient: str, smtp_config: Optional[dict] = None):
-    """Send an email alert using SMTP.
-    If smtp_config is None, it will use environment variables.
+MAX_EMAILS = 5
+
+async def send_email_alert(
+    subject: str,
+    body: str,
+    recipient: Optional[str] = None,
+    smtp_config: Optional[dict] = None,
+    html: bool = False,
+    max_retries: int = 3,
+    retry_delay: float = 1.0
+) -> bool:
+    """Send an email alert using SMTP with HTML support and retry logic.
+    
+    Args:
+        subject: Email subject
+        body: Email body content
+        recipient: Recipient email address
+        smtp_config: SMTP configuration dictionary (uses env vars if None)
+        html: Whether to send as HTML (default: False)
+        max_retries: Maximum number of retry attempts
+        retry_delay: Initial delay between retries in seconds (exponential backoff)
+    
+    Returns:
+        bool: True if email was sent successfully, False otherwise
     """
-    return
-    try:
-        # Load from environment in production
+    global MAX_EMAILS
+    
+    # Check email limit
+    if MAX_EMAILS <= 0 or recipient is None:
+        # logger.warning("Maximum email limit reached. Not sending email.")
+        return False
+    
+    # Load SMTP config from environment if not provided
+    if smtp_config is None:
         smtp_config = {
-            "host": smtp_config.get("host"),
-            "port": smtp_config.get("port", 587),
-            "username": smtp_config.get("username"),
-            "password": smtp_config.get("password")
+            "host": os.getenv("SMTP_HOST"),
+            "port": int(os.getenv("SMTP_PORT", 587)),
+            "username": os.getenv("SMTP_USER"),
+            "password": os.getenv("SMTP_PASS")
         }
-        
-        message = MIMEMultipart()
-        message["From"] = smtp_config["username"]
-        message["To"] = recipient
-        message["Subject"] = subject
-        
-        message.attach(MIMEText(body, "plain"))
-        
-        await aiosmtplib.send(
-            message,
-            hostname=smtp_config["host"],
-            port=smtp_config["port"],
-            username=smtp_config["username"],
-            password=smtp_config["password"],
-            start_tls=True
-        )
-        logger.info(f"Sent alert email to {recipient}")
-    except Exception as e:
-        logger.error(f"Failed to send email: {e}")
+    
+    # Validate required config
+    required_keys = ["host", "username", "password"]
+    if not all(smtp_config.get(k) for k in required_keys):
+        logger.error("Missing required SMTP configuration")
+        return False
+    
+    # Create email message
+    message = MIMEMultipart()
+    message["From"] = smtp_config["username"]
+    message["To"] = recipient
+    message["Subject"] = subject
+    
+    # Add body with appropriate content type
+    content_type = "html" if html else "plain"
+    message.attach(MIMEText(body, content_type))
+    
+    # Retry logic with exponential backoff
+    last_exception = None
+    for attempt in range(max_retries):
+        try:
+            await aiosmtplib.send(
+                message,
+                hostname=smtp_config["host"],
+                port=smtp_config.get("port", 587),
+                username=smtp_config["username"],
+                password=smtp_config["password"],
+                start_tls=True,
+                timeout=10  # Add timeout to prevent hanging
+            )
+            logger.info(f"Sent email to {recipient} with subject: {subject}")
+            MAX_EMAILS -= 1
+            return True
+            
+        except Exception as e:
+            last_exception = e
+            wait_time = retry_delay * (2 ** attempt)  # Exponential backoff
+            logger.warning(
+                f"Email send attempt {attempt + 1} failed. "
+                f"Retrying in {wait_time:.1f} seconds. Error: {str(e)}"
+            )
+            await asyncio.sleep(wait_time)
+    
+    # All retries failed
+    logger.error(
+        f"Failed to send email after {max_retries} attempts. "
+        f"Last error: {str(last_exception)}"
+    )
+    return False
 
 def exponential_backoff(retries: int = 3, base_delay: float = 1.0, retry_on_None: bool = False, raise_on_failure: bool = True):
     def decorator(func):
