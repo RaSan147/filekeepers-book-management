@@ -1,4 +1,4 @@
-from API import main as api_main
+import API
 from API import migrate as api_migrate
 
 if __name__ == "__main__":
@@ -9,7 +9,7 @@ if __name__ == "__main__":
 if __name__ == "PROD__main__":
 	import uvicorn
 	uvicorn.run(
-		api_main.app, host=api_main.API_HOST, port=api_main.API_PORT, 
+		API.app, host=API.API_HOST, port=API.API_PORT, 
 	)
 
 if __name__ == "__main__":#DEV
