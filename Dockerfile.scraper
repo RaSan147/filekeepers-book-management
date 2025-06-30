@@ -5,29 +5,24 @@ WORKDIR /app
 # Install cron
 RUN apt-get update && apt-get install -y cron && rm -rf /var/lib/apt/lists/*
 
-# Copy everything
+# Create symlink for compatibility
+RUN ln -s /usr/bin/python3 /usr/bin/python || true
+
+# Copy codebase and cron config
 COPY . .
 
 # Install dependencies
 RUN pip install -r requirements.txt
 RUN pip install --no-cache-dir -e ./shared
 
-# Set up cron
-COPY ./scraper/crontab /etc/cron.d/scraper-cron
-RUN chmod 0644 /etc/cron.d/scraper-cron && \
-    crontab /etc/cron.d/scraper-cron && \
-    touch /var/log/cron.log
+# Make retry script executable
+RUN chmod +x /app/retry_script.sh
 
-# Create retry script
-RUN echo '#!/bin/bash\n\
-MAX_RETRIES=3\n\
-RETRY_DELAY=60\n\
-\n\
-for ((i=1; i<=$MAX_RETRIES; i++)); do\n\
-  echo "Attempt $i: Running scraper $([ $i -gt 1 ] && echo "--resume")"\n\
-  python scrapper_caller.py $([ $i -gt 1 ] && echo "--resume")\n\
-  if [ $? -eq 0 ]; then exit 0; fi\n\
-  [ $i -lt $MAX_RETRIES ] && sleep $RETRY_DELAY\ndone\nexit 1' > /app/retry_script.sh && \
-    chmod +x /app/retry_script.sh
+# Install crontab
+RUN crontab /app/scraper_crontab
 
+# Ensure cron log exists
+RUN touch /var/log/cron.log
+
+# Start cron and tail logs
 CMD ["bash", "-c", "printenv > /etc/environment && cron && tail -f /var/log/cron.log"]

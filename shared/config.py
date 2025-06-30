@@ -32,7 +32,10 @@ class Config:
 	MONGO_PASSWORD = os.getenv("MONGO_PASSWORD", None)
 
 	if MONGO_USERNAME and MONGO_PASSWORD:
-		MONGO_URI = MONGO_URI.replace("mongodb://", f"mongodb://{MONGO_USERNAME}:{MONGO_PASSWORD}@")
+		if MONGO_URI.startswith(f"mongodb://{MONGO_USERNAME}:{MONGO_PASSWORD}@"):
+			pass # If the URI already contains credentials, we don't modify it
+		else:
+			MONGO_URI = MONGO_URI.replace("mongodb://", f"mongodb://{MONGO_USERNAME}:{MONGO_PASSWORD}@")
 
 	ENV_LOADED_SUCCESSFULLY = int(os.getenv("ENV_LOADED_SUCCESSFULLY", 0)) == 1
 
@@ -56,7 +59,7 @@ class Config:
 
 config = Config()
 
-if __name__ == "__main__" or True:
+if __name__ == "__main__":
 	# For debugging purposes, print the configuration
 	print("Configuration loaded successfully:")
 	for key, value in vars(Config).items():

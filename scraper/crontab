@@ -1,3 +1,0 @@
-# Run daily at 2 AM with retry logic
-0 2 * * * root /app/retry_script.sh >> /var/log/cron.log 2>&1
-# (this empty line is important!)

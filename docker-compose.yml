@@ -4,33 +4,32 @@ services:
   mongodb:
     image: mongo:6.0
     ports:
-      - "27017:27017"
+      - "27018:27017"
     volumes:
       - mongodb_data:/data/db
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: ["CMD-SHELL", "mongosh --eval \"db.adminCommand('ping')\" > /dev/null 2>&1"]
       interval: 5s
       timeout: 30s
       retries: 5
     env_file:
       - .env
+    command: >
+      mongod --quiet --setParameter logComponentVerbosity="{\"network\":{\"verbosity\":-1}}"
 
   api:
     build:
       context: .
       dockerfile: Dockerfile.api
     ports:
-      - "8000:8000"
+      - "8080:8080"
     env_file:
       - .env
     depends_on:
       mongodb:
         condition: service_healthy
     environment:
-      - MONGO_URI=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017
+      - MONGO_URI=mongodb://mongodb:27017
 
   scraper:
     build:
@@ -42,7 +41,7 @@ services:
       mongodb:
         condition: service_healthy
     environment:
-      - MONGO_URI=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongodb:27017
+      - MONGO_URI=mongodb://mongodb:27017
 
 volumes:
   mongodb_data:

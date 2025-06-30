@@ -1,7 +1,7 @@
 import API
 from API import migrate as api_migrate
 
-MODE = "DEV"  # Change to "PROD" for production
+MODE = "PROD"  # Change to "PROD" for production
 
 if __name__ == "__main__":
 	# Run migrations
@@ -19,7 +19,7 @@ if __name__ == "__main__" and MODE == "DEV":
 	import sys
 	import os
 
-	def run_fastapi_dev(app_path="main:app", port=8000, host="127.0.0.1", reload=True):
+	def run_fastapi_dev(app_path="main:app", port=8080, host="0.0.0.0", reload=True):
 		command = [
 			sys.executable, "-m", "uvicorn", app_path,
 			"--host", host,
@@ -36,4 +36,4 @@ if __name__ == "__main__" and MODE == "DEV":
 		print(f"Running: {' '.join(command)}")
 		subprocess.run(command, env=env)
 
-	run_fastapi_dev("API:app", port=8000)
+	run_fastapi_dev("API:app", port=8080)

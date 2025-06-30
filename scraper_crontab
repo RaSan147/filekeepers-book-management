@@ -1,0 +1,5 @@
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Run Everyday at 2 AM UTC
+0 2 * * * cd /app && ./retry_script.sh ./scrapper_caller.py 3 >> /var/log/cron.log 2>&1

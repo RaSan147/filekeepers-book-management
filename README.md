@@ -96,7 +96,7 @@ Create a `.env` file with:
 # Example .env
 MONGO_URI=mongodb://localhost:27017
 API_HOST=0.0.0.0
-API_PORT=8000
+API_PORT=8080
 SMTP_HOST=smtp.mailtrap.io
 SMTP_PORT=587
 SMTP_USER=your_user
@@ -131,7 +131,7 @@ python api_server_caller.py
 ```
 or Uvicorn for production:
 ```bash
-uvicorn API:app --host "0.0.0.0" --port 8000
+uvicorn API:app --host "0.0.0.0" --port 8080
 ```
 
 ### 🐳 Docker
@@ -146,8 +146,8 @@ docker-compose up --build
 
 Interactive API docs:
 
-* Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
-* Redoc: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+* Swagger UI: [http://localhost:8080/docs](http://localhost:8080/docs)
+* Redoc: [http://localhost:8080/redoc](http://localhost:8080/redoc)
 
 Authentication:
 
