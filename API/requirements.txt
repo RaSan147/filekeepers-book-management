@@ -10,6 +10,4 @@ python-dateutil
 typing-extensions
 beautifulsoup4
 lxml
-pytest-asyncio
-pytest-mock
-python-dotenv
+aiosmtplib

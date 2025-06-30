@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 30s
+      retries: 3
+
+  scraper:
+    build: ./scraper
+    container_name: scraper
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PYTHONUNBUFFERED=1
+      - SMTP_HOST=smtp.example.com
+      - SMTP_PORT=587
+      - SMTP_USER=alerts@example.com
+      - SMTP_PASSWORD=password
+      - ALERT_EMAIL=admin@example.com
+    volumes:
+      - ./shared:/app/shared
+      - ./scraper:/app/scraper
+      - scraper_logs:/var/log
+    restart: unless-stopped
+
+  api:
+    build: ./api
+    container_name: api
+    ports:
+      - "8000:8000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./shared:/app/shared
+      - ./api:/app/api
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
+  scraper_logs:

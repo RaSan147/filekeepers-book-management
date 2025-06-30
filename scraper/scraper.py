@@ -12,22 +12,24 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import IndexModel
 
 from shared.models import BookBase, BookInDB, BookChangeLog
+from shared.config import config
+
 from .utils import send_email_alert, exponential_backoff
 from .network_utils import resolve_relative_link, tag_to_absolute_url
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-BASE_URL = 'https://books.toscrape.com'
-MONGO_URI = os.getenv('MONGO_URI', 'mongodb://localhost:27017')
+BASE_URL = config.BASE_URL
+MONGO_URI = config.MONGO_URI
 SMTP_CONFIG = {
-    'host': os.getenv('SMTP_HOST'),
-    'port': os.getenv('SMTP_PORT', 587),
-    'username': os.getenv('SMTP_USER'),
-    'password': os.getenv('SMTP_PASS')
+    'host': config.SMTP_HOST,
+    'port': config.SMTP_PORT,
+    'username': config.SMTP_USER,
+    'password': config.SMTP_PASS,
 }
-CHANGELOG_LIMIT = int(os.getenv('CHANGELOG_LIMIT', -1))  # -1 for no limit
-REQUEST_TIMEOUT = int(os.getenv('REQUEST_TIMEOUT', 30))  # Default to 30 seconds
+CHANGELOG_LIMIT = config.CHANGELOG_LIMIT  # Limit for change log entries, -1 for no limit
+REQUEST_TIMEOUT = config.REQUEST_TIMEOUT  # Timeout for HTTP requests in seconds
 
 class BookScraper:
     def __init__(self, base_url=BASE_URL, mongo_uri=MONGO_URI):
@@ -189,7 +191,7 @@ class BookScraper:
                 # Update book
                 # book_dict['last_updated'] = now
                 book_in_db.last_updated = now
-                book_in_db.id = existing_book["_id"]  # Use existing ID
+                book_in_db.id = str(existing_book["_id"])  # Use existing ID
                 await self.db.books.update_one(
                     {"_id": existing_book["_id"]},
                     {"$set": book_in_db.model_dump()}
