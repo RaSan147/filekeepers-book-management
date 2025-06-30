@@ -35,4 +35,4 @@ if __name__ == "__main__":#DEV
 		subprocess.run(command, env=env)
 
 	# Change "main:app" if your FastAPI app is in a different file or named differently
-	run_fastapi_dev("API.main:app", port=8000)
+	run_fastapi_dev("API:app", port=8000)
