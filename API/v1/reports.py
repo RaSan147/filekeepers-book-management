@@ -87,7 +87,7 @@ async def get_daily_report_csv(
     for change in report.changes:
         writer.writerow([
             report.date,
-            get_book_title(change["book_id"]),
+            await get_book_title(change["book_id"]),
             change["change_type"],
             change["book_id"],
             str(change.get("changed_fields", {}))
