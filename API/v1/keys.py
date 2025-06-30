@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from uuid import uuid4
+from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
@@ -114,11 +115,50 @@ async def list_api_keys(
 	keys = await db.api_keys.find().to_list(100)
 	return [APIKeyInDB(**key) for key in keys]
 
-@router.patch("/{key_id}", response_model=APIKeyInDB)
+@router.get("/{target_api}", response_model=APIKeyInDB)
+@api_ip_rate_limit()
+async def get_api_key(
+	request: Request,
+	target_api: str,
+	db: AsyncIOMotorDatabase = Depends(get_db),
+	api_key: APIKeyInDB = Depends(validate_api_key)
+):
+	"""
+	Get details of a specific API key
+
+	This endpoint retrieves the details of a specific API key by its key value.
+
+	Response Example:
+	```json
+	{
+		"key": "string", # Auto-generated API key (UUID4)
+		"name": "string", # Name of the API key
+		"owner": "string", # Owner of the API key
+		"rate_limit": "string", # Rate limit configuration (e.g., "100/hour")
+		"scopes": ["string"], # List of permissions/scopes
+		"is_active": true, # Whether the key is active
+		"created_at": "2023-10-01T00:00:00Z", # When the key was created
+		"_id": "string" # MongoDB document ID
+	}
+	```
+	"""
+	if not ("admin" in api_key.scopes or api_key.key == target_api):
+		raise HTTPException(
+			status_code=status.HTTP_403_FORBIDDEN,
+			detail="Admin privileges required"
+		)
+	
+	key_data = await db.api_keys.find_one({"key": target_api})
+	if not key_data:
+		raise HTTPException(status_code=404, detail="API key not found")
+	
+	return APIKeyInDB(**key_data)
+
+@router.patch("/{target_api}", response_model=APIKeyInDB)
 @api_ip_rate_limit()
 async def update_api_key(
 	request: Request,
-	key_id: str,
+	target_api: str,
 	updates: APIKeyUpdate,
 	db: AsyncIOMotorDatabase = Depends(get_db),
 	api_key: APIKeyInDB = Depends(validate_api_key)
@@ -147,7 +187,7 @@ async def update_api_key(
 		"scopes": ["string"], # List of permissions/scopes
 		"is_active": true, # Whether the key is active
 		"created_at": "2023-10-01T00:00:00Z", # When the key was created
-		"_id": "string" # MongoDB document ID
+		"id": "string" # MongoDB document ID
 	}
 	```
 	"""
@@ -159,21 +199,21 @@ async def update_api_key(
 	
 	# Update the key
 	result = await db.api_keys.update_one(
-		{"_id": key_id},
+		{"key": target_api},
 		{"$set": updates.model_dump(exclude_unset=True)}
 	)
 	
 	if result.modified_count == 0:
 		raise HTTPException(status_code=404, detail="API key not found")
 	
-	updated_key = await db.api_keys.find_one({"_id": key_id})
+	updated_key = await db.api_keys.find_one({"key": target_api})
 	return APIKeyInDB(**updated_key)
 
-@router.delete("/{key_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{target_api}", status_code=status.HTTP_200_OK)
 @api_ip_rate_limit()
 async def delete_api_key(
 	request: Request,
-	key_id: str,
+	target_api: str,
 	db: AsyncIOMotorDatabase = Depends(get_db),
 	api_key: APIKeyInDB = Depends(validate_api_key)
 ):
@@ -187,6 +227,7 @@ async def delete_api_key(
 	{		
 		"detail": "API key deleted successfully"
 		"status": "success"
+		"a
 	}
 	"""
 	if "admin" not in api_key.scopes:
@@ -195,7 +236,7 @@ async def delete_api_key(
 			detail="Admin privileges required"
 		)
 	
-	result = await db.api_keys.delete_one({"_id": key_id})
+	result = await db.api_keys.delete_one({"key": target_api})
 	if result.deleted_count == 0:
 		raise HTTPException(status_code=404, detail="API key not found")
 	

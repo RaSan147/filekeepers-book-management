@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from functools import wraps
 import uuid
+from bson import ObjectId
 from fastapi.security import APIKeyHeader
 from fastapi import Depends, HTTPException, status, Request
 from slowapi import Limiter
@@ -30,7 +31,9 @@ async def get_db():
 async def get_api_key(db, api_key: str) -> Optional[APIKeyInDB]:
     """Retrieve API key details from database"""
     key_data = await db.api_keys.find_one({"key": api_key})
-    key_data["_id"] = str(key_data["_id"]) if key_data else ''  # Convert ObjectId to str+
+    if not key_data:
+        return None
+
     if key_data:
         return APIKeyInDB(**key_data)
     return None
@@ -66,7 +69,7 @@ async def validate_api_key(
     
     # Update last used timestamp
     await db.api_keys.update_one(
-        {"_id": key_info.id},
+        {"_id": ObjectId(key_info.id)},
         {"$set": {"last_used": datetime.now(tz=timezone.utc)}}
     )
     

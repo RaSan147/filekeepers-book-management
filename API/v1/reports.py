@@ -16,7 +16,7 @@ router = APIRouter()
 @api_ip_rate_limit()
 async def get_daily_report(
     request: Request,
-    date: Optional[str] = Query(None, regex=r"^\d{4}-\d{2}-\d{2}$", description="Date in YYYY-MM-DD format."),
+    date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$", description="Date in YYYY-MM-DD format."),
     db: AsyncIOMotorDatabase = Depends(get_db),
     api_key: str = Depends(validate_api_key)
 ):
@@ -59,7 +59,7 @@ async def get_daily_report(
 @api_ip_rate_limit()
 async def get_daily_report_csv(
     request: Request,
-    date: Optional[str] = Query(None, regex=r"^\d{4}-\d{2}-\d{2}$", description="Date in YYYY-MM-DD format."),
+    date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$", description="Date in YYYY-MM-DD format."),
     db: AsyncIOMotorDatabase = Depends(get_db),
     api_key: str = Depends(validate_api_key)
 ):
@@ -101,6 +101,6 @@ async def get_daily_report_csv(
     }
     return StreamingResponse(
         iter([output.getvalue().encode()]),
-        media_type="text/csv",
+        media_type="text/csv; charset=utf-8",
         headers=headers
     )

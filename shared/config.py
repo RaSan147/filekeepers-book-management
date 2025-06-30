@@ -1,12 +1,11 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv()  # Always load .env at import time
+load_dotenv(override=False)  # Always load .env at import time
 
 class Config:
 	"""Configuration class for the application."""
 	BASE_URL = 'https://books.toscrape.com'
-	MONGO_URI = os.getenv("MONGO_URI", '')
 	API_HOST = os.getenv("API_HOST", "0.0.0.0")
 	API_PORT = int(os.getenv("API_PORT", 0))
 	SMTP_HOST = os.getenv("SMTP_HOST")
@@ -27,6 +26,13 @@ class Config:
 
 	DEFAULT_ADMIN_TASK_NAME = os.getenv("DEFAULT_ADMIN_TASK_NAME", '')
 	DEFAULT_ADMIN_API_KEY = os.getenv("DEFAULT_ADMIN_API_KEY", '')
+
+	MONGO_URI = os.getenv("MONGO_URI", '')
+	MONGO_USERNAME = os.getenv("MONGO_USERNAME", None)
+	MONGO_PASSWORD = os.getenv("MONGO_PASSWORD", None)
+
+	if MONGO_USERNAME and MONGO_PASSWORD:
+		MONGO_URI = MONGO_URI.replace("mongodb://", f"mongodb://{MONGO_USERNAME}:{MONGO_PASSWORD}@")
 
 	ENV_LOADED_SUCCESSFULLY = int(os.getenv("ENV_LOADED_SUCCESSFULLY", 0)) == 1
 
@@ -49,4 +55,16 @@ class Config:
 		raise EnvironmentError("Environment variables not loaded successfully. Please check your .env file.")
 
 config = Config()
+
+if __name__ == "__main__" or True:
+	# For debugging purposes, print the configuration
+	print("Configuration loaded successfully:")
+	for key, value in vars(Config).items():
+		if not key.startswith('__'):
+			print(f"{key}: {value}")
+	
+	if not config.ENV_LOADED_SUCCESSFULLY:
+		print("Warning: Environment variables may not have loaded correctly. Check your .env file.")
+	else:
+		print("Environment variables loaded successfully.")
 

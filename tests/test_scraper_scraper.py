@@ -13,6 +13,9 @@ async def scraper():
     async with BookScraper() as s:
         # Mock the database for testing
         s.db = MagicMock()
+        s.db.books = AsyncMock()
+        s.db.change_log = AsyncMock()
+        s.db.session_log = AsyncMock()
         yield s
 
 @pytest.mark.asyncio

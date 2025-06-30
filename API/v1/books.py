@@ -20,7 +20,7 @@ async def list_books(
 	rating: Optional[int] = Query(None, ge=1, le=5, description="Minimum rating filter (1-5 stars)"),
 	sort_by: str = Query("rating",
 		description="Field to sort by (default is 'rating'). Options: 'rating', 'price', 'reviews', 'newest'",
-		example="rating"),
+		examples="rating"),
 	page: int = Query(1, ge=1, description="Page number for pagination"),
 	per_page: int = Query(20, ge=1, le=100, description="Number of books per page"),
 	db: AsyncIOMotorDatabase = Depends(get_db),
@@ -115,7 +115,7 @@ async def get_changes(
 @api_ip_rate_limit()
 async def get_book(
 	request: Request,
-	book_id: str = Path(..., regex="^[0-9a-fA-F]{24}$", description="The ID of the book to retrieve (24-character hex string)"),
+	book_id: str = Path(..., pattern="^[0-9a-fA-F]{24}$", description="The ID of the book to retrieve (24-character hex string)"),
 	db: AsyncIOMotorDatabase = Depends(get_db),
 	api_key: str = Depends(validate_api_key)
 ):
