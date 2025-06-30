@@ -10,3 +10,4 @@ python-dateutil==2.9.0.post0
 typing-extensions==4.13.2
 pytest-asyncio==1.0.0
 pytest-mock==3.14.1
+httpx==0.28.1
