@@ -23,6 +23,7 @@ class Config:
 
 	DEFAULT_ADMIN_RATE_LIMIT = os.getenv("DEFAULT_ADMIN_RATE_LIMIT", "500/hour")  # Default rate limit for admin users
 	DEFAULT_USER_RATE_LIMIT = os.getenv("DEFAULT_USER_RATE_LIMIT", "100/hour")  # Default rate limit for regular users
+	DEFAULT_IP_RATE_LIMIT = os.getenv("DEFAULT_IP_RATE_LIMIT", "200/hour")  # Default rate limit for IPs
 
 	DEFAULT_ADMIN_TASK_NAME = os.getenv("DEFAULT_ADMIN_TASK_NAME", '')
 	DEFAULT_ADMIN_API_KEY = os.getenv("DEFAULT_ADMIN_API_KEY", '')

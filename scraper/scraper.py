@@ -324,7 +324,7 @@ class BookScraper:
             "date": datetime.now(timezone.utc).isoformat(),
             "new_books": new_books,
             "updated_books": updated_books,
-            "changes": changes
+            "changes": [BookChangeLog(**change).model_dump() for change in changes]
         }
         
         # Store report

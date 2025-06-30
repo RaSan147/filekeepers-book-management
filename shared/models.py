@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field, field_validator
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, List, Optional
+from uuid import uuid4, UUID
 
 
 class ObjectIdStr(str):
@@ -69,9 +70,8 @@ class APIKeyInDB(APIKeyBase):
     is_active: bool = Field(default=True, description="Whether the key is active")
     last_used: Optional[datetime] = Field(default_factory=(lambda _: datetime.now(tz=timezone.utc)), description="When the key was last used")
     scopes: List[str] = Field(default_factory=list, description="List of permissions/scopes")
+    # expires_at: Optional[datetime] = None # Not implemented yet
 
-
-    
     @field_validator("id", mode="before")
     @classmethod
     def convert_object_id(cls, v: Any) -> str:
@@ -86,3 +86,5 @@ class APIKeyUpdate(BaseModel):
     name: Optional[str] = None
     rate_limit: Optional[str] = None
     is_active: Optional[bool] = None
+
+
