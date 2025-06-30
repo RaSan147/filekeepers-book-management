@@ -118,6 +118,12 @@ ENV_LOADED_SUCCESSFULLY=1
 python scrapper_caller.py
 ```
 
+To resume from last session (run if interrupted) (if completed, will skip through already processed books):
+
+```bash
+python scrapper_caller.py --resume
+```
+
 ### ▶️ Run the API Server
 
 ```bash

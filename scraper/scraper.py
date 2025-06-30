@@ -5,6 +5,7 @@ import logging
 from datetime import datetime, timezone
 import traceback
 from typing import Optional
+from uuid import uuid4
 
 import aiohttp
 from bs4 import BeautifulSoup
@@ -32,7 +33,7 @@ CHANGELOG_LIMIT = config.CHANGELOG_LIMIT  # Limit for change log entries, -1 for
 REQUEST_TIMEOUT = config.REQUEST_TIMEOUT  # Timeout for HTTP requests in seconds
 
 class BookScraper:
-    def __init__(self, base_url=BASE_URL, mongo_uri=MONGO_URI):
+    def __init__(self, base_url=BASE_URL, mongo_uri=MONGO_URI, resume: bool = False):
         self.base_url = base_url
         self.client = AsyncIOMotorClient(mongo_uri)
         self.db = self.client.book_db
@@ -47,6 +48,10 @@ class BookScraper:
             "four": 4,
             "five": 5
         }
+
+        self.scraped_links = set()  # Track already scraped links
+        self.resume = resume
+        self.session_id = str(uuid4())  # Unique session ID for this scraping run
 
     async def __aenter__(self):
         self.session = aiohttp.ClientSession()
@@ -65,6 +70,27 @@ class BookScraper:
             IndexModel([("last_updated", -1)]),
         ])
         await self.db.change_log.create_index([("timestamp", -1)])
+
+        await self.db.session_log.create_indexes([
+            IndexModel([("session_id", 1)]),
+            IndexModel([("timestamp", -1)]),
+        ])
+
+    async def _ensure_resume(self):
+        """ Ensure we can resume from the last point if needed. """
+        if self.resume:
+            # Load last scraped lsession_id from the database
+            last_session = await self.db.session_log.find_one({"session_id": self.session_id}, sort=[("timestamp", -1)])
+            if last_session:
+                # add the scraped links (links with the session id) to the set
+                self.scraped_links = set(await self.db.books.find({"session_id": last_session}, {"url": 1}).distinct("url"))
+                logger.info(f"Resuming from last session: {last_session}, found {len(self.scraped_links)} previously scraped links.")
+            else:
+                logger.info(f"No previous session found, starting fresh with session ID: {self.session_id}")
+
+        else:
+            # Start a new session, clear scraped links and db activity
+            await self.db.session_log.delete_many({})
 
     @exponential_backoff(retries=3, retry_on_None=True, raise_on_failure=False)
     async def fetch_page(self, url: str) -> Optional[str]:
@@ -151,6 +177,10 @@ class BookScraper:
         Returns:
             Optional[str]: 'created' if a new book was added, 'updated' if an existing book was updated, or None if no changes were detected.
         """
+        if book_url in self.scraped_links:
+            logger.info(f"Skipping already scraped book: {book_url}")
+            return None
+
         html = await self.fetch_page(book_url)
         if not html:
             return None
@@ -215,6 +245,15 @@ class BookScraper:
                         "admin@example.com",
                         smtp_config=SMTP_CONFIG
                     )
+
+                self.scraped_links.add(book_url)  # Mark as scraped
+                # Log activity
+                activity_log = {
+                    "session_id": self.session_id,
+                    "url": book_url,
+                    "timestamp": now,
+                }
+                await self.db.session_log.insert_one(activity_log)
                 
                 return "updated"
         else:
@@ -238,6 +277,15 @@ class BookScraper:
                 "admin@example.com",
                 smtp_config=SMTP_CONFIG
             )
+
+            self.scraped_links.add(book_url)  # Mark as scraped
+            # Log activity
+            activity_log = {
+                "session_id": self.session_id,
+                "url": book_url,
+                "timestamp": now,
+            }
+            await self.db.session_log.insert_one(activity_log)
             
             return "created"
 
@@ -364,8 +412,14 @@ class BookScraper:
             smtp_config=SMTP_CONFIG
         )
 
-async def main():
-    async with BookScraper() as scraper:
+async def main(resume: bool = False):
+    """ Main entry point for the scraper.
+    If `resume` is True, it will resume scraping from the last point.
+    Otherwise, it will start from the beginning.
+    Args:
+        resume (bool): Whether to resume scraping from the last point.
+    """
+    async with BookScraper(resume=resume) as scraper:
         await scraper.scrape_all_books()
 
 if __name__ == "__main__":
