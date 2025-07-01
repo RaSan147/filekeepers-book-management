@@ -114,7 +114,13 @@ All endpoints require an API key via `X-API-KEY` header.
 ### 📚 Books
 
 ```http
+GET /books
+X-API-KEY: your-api-key
+
+or
+
 GET /api/v1/books
+X-API-KEY: your-api-key
 ```
 
 #### Query Parameters
@@ -132,6 +138,11 @@ GET /api/v1/books
 **Example:**
 
 ```http
+GET /books?category=Science&min_price=10&sort_by=rating
+X-API-KEY: your-api-key
+
+or
+
 GET /api/v1/books?category=Science&min_price=10&sort_by=rating
 X-API-KEY: your-api-key
 ```
@@ -141,7 +152,13 @@ X-API-KEY: your-api-key
 ### 📘 Book Detail
 
 ```http
+GET /books/{book_id}
+X-API-KEY: your-api-key
+
+or
+
 GET /api/v1/books/{book_id}
+X-API-KEY: your-api-key
 ```
 
 Returns full book details including raw HTML and timestamps.
@@ -151,7 +168,13 @@ Returns full book details including raw HTML and timestamps.
 ### 🔄 Change Logs
 
 ```http
+GET /changes?days=7&limit=50
+X-API-KEY: your-api-key
+
+or
+
 GET /api/v1/books/changes?days=7&limit=50
+X-API-KEY: your-api-key
 ```
 
 See what books were added/updated recently.
